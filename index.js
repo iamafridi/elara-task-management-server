@@ -63,21 +63,36 @@ async function run() {
     app.get("/api/v1/services", async (req, res) => {
       let queryObj = {};
       let sortObj = {};
+
+      // filter
       const category = req.query.category;
-      const sortField = req.query.sortField;
-      const sortOrder = req.query.sortOrder;
+      // Pagination
+      const page = Number(req.query.page);
+      const limit = Number(req.query.limit);
+      const skip = (page - 1) * limit;
+
+      // Sorting
+      const sortField = req.query.sortField; //price
+      const sortOrder = req.query.sortOrder; //desc or asc
 
       if (category) {
         queryObj.category = category;
       }
       if (sortField && sortOrder) {
-        sortObj[sortField] = sortOrder;
+        sortObj[sortField] = sortOrder; //{price: desc or asc}
       }
 
-      const cursor = serviceCollection.find(queryObj).sort(sortObj);
+      const cursor = serviceCollection
+        .find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort(sortObj);
       const result = await cursor.toArray();
 
-      res.send(result);
+      // count data
+      const total = await serviceCollection.countDocuments();
+
+      res.send({ total, result });
     });
 
     // Booking Here
