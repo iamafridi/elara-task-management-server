@@ -4,19 +4,21 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-require('dotenv').config();
+require("dotenv").config();
 
 const port = 5000;
 
-const secret ="xyzyzxmbauebaoefh43234325bjhhbi";
+const secret = "xyzyzxmbauebaoefh43234325bjhhbi";
 
 // Parser/ middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 // DB URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7grn8zj.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -59,7 +61,20 @@ async function run() {
 
     // Getting Services here
     app.get("/api/v1/services", async (req, res) => {
-      const cursor = serviceCollection.find();
+      let queryObj = {};
+      let sortObj = {};
+      const category = req.query.category;
+      const sortField = req.query.sortField;
+      const sortOrder = req.query.sortOrder;
+
+      if (category) {
+        queryObj.category = category;
+      }
+      if (sortField && sortOrder) {
+        sortObj[sortField] = sortOrder;
+      }
+
+      const cursor = serviceCollection.find(queryObj).sort(sortObj);
       const result = await cursor.toArray();
 
       res.send(result);
@@ -100,13 +115,14 @@ async function run() {
     // JWT
     app.post("/api/v1/auth/access-token", async (req, res) => {
       const user = req.body;
+      console.log(user);
       const token = jwt.sign(user, secret, { expiresIn: 60 * 60 });
 
       // Setting in cookie
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false,
+          secure: true,
           sameSite: "none",
         })
         .send({ success: true });
